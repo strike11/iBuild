@@ -1,0 +1,45 @@
+name: b2c-ci
+
+on:
+  push:
+    paths:
+      - 'b2c/**'
+  pull_request:
+    paths:
+      - 'b2c/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        working-directory: b2c
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: b2c
+        run: flutter analyze
+
+      - name: Test
+        working-directory: b2c
+        # Tests opt into the mock-data seam (the app default is now
+        # USE_MOCK_DATA=false so production artifacts never ship mock data).
+        run: flutter test --dart-define=USE_MOCK_DATA=true
+
+      - name: Integration test
+        working-directory: b2c
+        # The smoke flow drives the mock catalogue; pin the built-in headless
+        # `flutter-tester` device so it runs on the CI runner without an
+        # emulator/display (and without device-selection ambiguity).
+        run: flutter test integration_test -d flutter-tester --dart-define=USE_MOCK_DATA=true
+
+      - name: Build web
+        working-directory: b2c
+        # Fail-closed: production web artifact must talk to the real API.
+        run: flutter build web --release --dart-define=USE_MOCK_DATA=false

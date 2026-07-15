@@ -1,0 +1,7 @@
+[Unit]
+Description=iBuild API health check (restart if unhealthy)
+After=ibuild-api.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/ibuild/server/deploy/healthcheck.sh

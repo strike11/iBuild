@@ -1,0 +1,28 @@
+name: b2b-ci
+
+on:
+  push:
+    paths:
+      - 'b2b/**'
+      - '.github/workflows/b2b-ci.yml'
+  pull_request:
+    paths:
+      - 'b2b/**'
+      - '.github/workflows/b2b-ci.yml'
+
+jobs:
+  analyze-test-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: b2b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --dart-define=API_BASE_URL=https://api.ibuild.uz/v1

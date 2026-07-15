@@ -1,0 +1,31 @@
+name: server-ci
+
+on:
+  push:
+    paths:
+      - 'server/**'
+  pull_request:
+    paths:
+      - 'server/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        working-directory: server
+        run: dart pub get
+
+      - name: Analyze
+        working-directory: server
+        run: dart analyze
+
+      - name: Test
+        working-directory: server
+        run: dart test

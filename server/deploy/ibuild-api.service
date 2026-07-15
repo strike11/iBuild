@@ -1,0 +1,34 @@
+[Unit]
+Description=iBuild API (Dart/Shelf)
+Documentation=file:///opt/ibuild/docs/HOSTING_AHOST.md
+# Boot only after the network is usable (managed Postgres is remote).
+After=network-online.target
+Wants=network-online.target
+# If Postgres runs on the same VDS, uncomment:
+# After=postgresql.service
+# Requires=postgresql.service
+
+[Service]
+Type=simple
+User=ibuild
+Group=ibuild
+WorkingDirectory=/opt/ibuild/server
+EnvironmentFile=/opt/ibuild/server/.env
+ExecStart=/usr/bin/dart run bin/server.dart
+# Restart on crash AND after unclean shutdown (power loss, OOM kill).
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=10
+# Graceful stop: give in-flight requests time to finish.
+TimeoutStopSec=30
+KillSignal=SIGTERM
+# Hardening (uploads + .env must stay writable).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ibuild/server/uploads /opt/ibuild/server
+
+[Install]
+WantedBy=multi-user.target

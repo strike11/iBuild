@@ -1,0 +1,59 @@
+name: Deploy API to ahost.uz
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-server.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.AHOST_HOST != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.9.0
+
+      - name: Get dependencies
+        working-directory: server
+        run: dart pub get
+
+      - name: Analyze & test
+        working-directory: server
+        run: |
+          dart analyze
+          dart test
+
+      - name: Deploy sources over SSH (never overwrite remote .env / uploads)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AHOST_HOST }}
+          username: ${{ secrets.AHOST_USER }}
+          key: ${{ secrets.AHOST_SSH_KEY }}
+          source: "server/bin,server/lib,server/migrations,server/pubspec.yaml,server/pubspec.lock,server/deploy,server/.env.example"
+          target: "/opt/ibuild/"
+          strip_components: 0
+
+      - name: Restart service
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AHOST_HOST }}
+          username: ${{ secrets.AHOST_USER }}
+          key: ${{ secrets.AHOST_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/ibuild/server
+            if [ ! -f .env ]; then
+              echo "ERROR: /opt/ibuild/server/.env missing. Copy .env.example and fill production secrets (see docs/HOSTING_AHOST.md)."
+              exit 1
+            fi
+            dart pub get
+            sudo systemctl restart ibuild-api
+            sleep 2
+            curl -sf http://127.0.0.1:4000/v1/health
