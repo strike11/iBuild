@@ -4,10 +4,14 @@ on:
   push:
     paths:
       - 'b2b/**'
+      # b2b depends on ibuild_core via a path dependency, so a change there
+      # can break this app without touching b2b/ at all.
+      - 'packages/ibuild_core/**'
       - '.github/workflows/b2b-ci.yml'
   pull_request:
     paths:
       - 'b2b/**'
+      - 'packages/ibuild_core/**'
       - '.github/workflows/b2b-ci.yml'
 
 jobs:
@@ -25,4 +29,9 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - run: flutter build web --dart-define=API_BASE_URL=https://api.ibuild.uz/v1
+      # Both defines must be passed together: building with only API_BASE_URL
+      # left the socket pointing at the compiled-in default host.
+      - run: |
+          flutter build web --release \
+            --dart-define=API_BASE_URL=https://api.ibuild.uz/v1 \
+            --dart-define=WS_URL=wss://api.ibuild.uz/v1/ws

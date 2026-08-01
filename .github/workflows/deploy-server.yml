@@ -1,4 +1,4 @@
-name: Deploy API to ahost.uz
+name: Deploy API (Docker)
 
 on:
   workflow_dispatch:
@@ -8,17 +8,27 @@ on:
       - 'server/**'
       - '.github/workflows/deploy-server.yml'
 
+# Queue deploys instead of cancelling them: two quick pushes to main must land
+# in order, and cancelling mid-rollout can leave the server on a half-applied
+# image.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    if: ${{ secrets.AHOST_HOST != '' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: 3.9.0
+          sdk: stable
 
       - name: Get dependencies
         working-directory: server
@@ -30,30 +40,143 @@ jobs:
           dart analyze
           dart test
 
-      - name: Deploy sources over SSH (never overwrite remote .env / uploads)
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image name
+        id: meta
+        run: |
+          # GHCR rejects uppercase in repository paths, and the owner here is
+          # mixed case (strike11/iBuild).
+          owner_repo="$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=ghcr.io/${owner_repo}/api:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "repo=ghcr.io/${owner_repo}/api" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          file: server/Dockerfile
+          push: true
+          # An immutable sha- tag is what the server actually runs, so a
+          # rollback is a one-line tag change. `latest` is a convenience
+          # pointer for humans and is never deployed from.
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ steps.meta.outputs.repo }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # The `secrets` context is not available in a job-level `if:` — referencing
+  # it there makes the whole workflow fail to parse with "Unrecognized
+  # named-value: 'secrets'". Resolve it to a plain output here instead, so
+  # forks and unconfigured repos skip the deploy rather than erroring.
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          AHOST_HOST: ${{ secrets.AHOST_HOST }}
+        run: |
+          if [ -n "$AHOST_HOST" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, check-secrets]
+    if: needs.check-secrets.outputs.configured == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy compose file
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.AHOST_HOST }}
           username: ${{ secrets.AHOST_USER }}
           key: ${{ secrets.AHOST_SSH_KEY }}
-          source: "server/bin,server/lib,server/migrations,server/pubspec.yaml,server/pubspec.lock,server/deploy,server/.env.example"
-          target: "/opt/ibuild/"
-          strip_components: 0
+          source: 'server/deploy/docker-compose.yml'
+          target: '/opt/ibuild/deploy/'
+          strip_components: 2
 
-      - name: Restart service
+      - name: Pull and restart
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          NEW_IMAGE: ${{ needs.build.outputs.image }}
+          GHCR_USER: ${{ github.actor }}
+          # Scoped to this run and expires with it, so nothing long-lived is
+          # left on the server. Restarts after the run still work because the
+          # image is already in the local Docker cache.
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.AHOST_HOST }}
           username: ${{ secrets.AHOST_USER }}
           key: ${{ secrets.AHOST_SSH_KEY }}
+          envs: NEW_IMAGE,GHCR_USER,GHCR_TOKEN
           script: |
-            set -e
-            cd /opt/ibuild/server
-            if [ ! -f .env ]; then
-              echo "ERROR: /opt/ibuild/server/.env missing. Copy .env.example and fill production secrets (see docs/HOSTING_AHOST.md)."
+            set -euo pipefail
+            cd /opt/ibuild/deploy
+
+            if [ ! -f /opt/ibuild/server/.env ]; then
+              echo "ERROR: /opt/ibuild/server/.env missing. Copy .env.example and fill production secrets (see docs/DEPLOYMENT_DOCKER.md)."
               exit 1
             fi
-            dart pub get
-            sudo systemctl restart ibuild-api
-            sleep 2
-            curl -sf http://127.0.0.1:4000/v1/health
+
+            # Remember what is serving traffic so a bad rollout can be undone.
+            PREV="$(docker inspect --format '{{.Config.Image}}' ibuild-api 2>/dev/null || true)"
+            echo "current: ${PREV:-<none>}"
+            echo "new:     ${NEW_IMAGE}"
+
+            # Log out no matter how this exits, so a failed pull cannot leave
+            # registry credentials behind in ~/.docker/config.json.
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+            echo "IBUILD_IMAGE=${NEW_IMAGE}" > .env
+            docker compose pull
+            docker compose up -d --remove-orphans
+
+            # The container is up long before the API is ready: Store applies
+            # pending migrations and loads fixtures on startup.
+            ok=0
+            for _ in $(seq 1 45); do
+              if curl -fsS http://127.0.0.1:4000/v1/health >/dev/null 2>&1; then
+                ok=1
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Health check failed after 90s — rolling back"
+              docker compose logs --tail=200 api || true
+              if [ -n "$PREV" ]; then
+                echo "IBUILD_IMAGE=${PREV}" > .env
+                docker compose up -d
+              fi
+              exit 1
+            fi
+
+            echo "Deployed ${NEW_IMAGE}"
+            # -a is what actually bounds disk usage: without it only dangling
+            # layers go, and every previously deployed sha- tag accumulates
+            # forever. `until` keeps a week of rollback targets.
+            docker image prune -af --filter 'until=168h'

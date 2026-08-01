@@ -1,0 +1,58 @@
+# Production compose file for the iBuild API. Lives on the server at
+# /opt/ibuild/deploy/docker-compose.yml and replaces the ibuild-api systemd
+# unit (which stays in this repo for non-Docker installs).
+#
+# Two separate env files, deliberately:
+#   /opt/ibuild/deploy/.env  — IBUILD_IMAGE only. Rewritten by CI on every
+#                              deploy, so it must never hold secrets.
+#   /opt/ibuild/server/.env  — application secrets. CI never touches it.
+#
+# Usage on the server:
+#   cd /opt/ibuild/deploy && docker compose up -d
+
+services:
+  api:
+    # Pinned to an immutable tag by CI (sha-<commit>), never `latest`, so a
+    # rollback is `IBUILD_IMAGE=...:sha-<older> docker compose up -d` and a
+    # restart cannot silently pull different code than the last deploy.
+    image: ${IBUILD_IMAGE:?set IBUILD_IMAGE in /opt/ibuild/deploy/.env}
+    container_name: ibuild-api
+    restart: unless-stopped
+
+    # Host networking keeps the migration off Docker to a single moving part:
+    # PostgreSQL stays on the host reachable at 127.0.0.1:5432 with no
+    # postgresql.conf/pg_hba.conf changes, and nginx keeps proxying to
+    # 127.0.0.1:4000 exactly as it did for the systemd unit.
+    #
+    # The bridge-network alternative needs Postgres to listen on the docker0
+    # address and a pg_hba rule for 172.16.0.0/12 — see docs/DEPLOYMENT_DOCKER.md
+    # before switching.
+    network_mode: host
+
+    env_file:
+      - /opt/ibuild/server/.env
+
+    environment:
+      # Overrides anything in .env. With host networking the container shares
+      # the host's stack, so binding 0.0.0.0 would publish the API straight to
+      # the internet, bypassing nginx and TLS.
+      BIND_ADDRESS: 127.0.0.1
+      PORT: 4000
+
+    volumes:
+      # User uploads must outlive the container. The host directory has to be
+      # owned by uid 10001 (the in-image `ibuild` user) or writes fail with
+      # EACCES; see docs/DEPLOYMENT_DOCKER.md for the chown.
+      - /opt/ibuild/server/uploads:/app/uploads
+
+    # Matches TimeoutStopSec in ibuild-api.service: the server traps SIGTERM
+    # and drains in-flight requests before exiting.
+    stop_grace_period: 30s
+
+    # Without caps the json-file driver grows unbounded and eventually fills
+    # the disk, which takes PostgreSQL down with it.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'

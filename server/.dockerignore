@@ -1,0 +1,27 @@
+# Keep secrets and local state out of the build context. Anything listed here
+# is invisible to `docker build`, so it can never end up in a pushed image.
+
+# Production secrets. Config reaches the container through env_file at run
+# time, never baked into a layer.
+.env
+.env.*
+!.env.example
+
+# Local build output and caches.
+.dart_tool/
+build/
+*.log
+
+# User-uploaded files and KYC documents: runtime state, mounted as a volume.
+uploads/
+
+# Not needed to run the server.
+test/
+tool/
+scripts/
+deploy/
+docker-compose.yml
+pgadmin-servers.json
+README.md
+Dockerfile
+.dockerignore

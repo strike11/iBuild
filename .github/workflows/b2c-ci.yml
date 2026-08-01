@@ -4,9 +4,15 @@ on:
   push:
     paths:
       - 'b2c/**'
+      # b2c depends on ibuild_core via a path dependency, so a change there
+      # can break this app without touching b2c/ at all.
+      - 'packages/ibuild_core/**'
+      - '.github/workflows/b2c-ci.yml'
   pull_request:
     paths:
       - 'b2c/**'
+      - 'packages/ibuild_core/**'
+      - '.github/workflows/b2c-ci.yml'
 
 jobs:
   build:
