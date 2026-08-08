@@ -46,6 +46,9 @@ services:
       # owned by uid 10001 (the in-image `ibuild` user) or writes fail with
       # EACCES; see docs/DEPLOYMENT_DOCKER.md for the chown.
       - /opt/ibuild/server/uploads:/app/uploads
+      # Bundled residence marketing photos — synced from git on each deploy so
+      # new images survive container recreates without rebuilding the image.
+      - /opt/ibuild/server/residences-images:/app/residences-images
 
     # Matches TimeoutStopSec in ibuild-api.service: the server traps SIGTERM
     # and drains in-flight requests before exiting.

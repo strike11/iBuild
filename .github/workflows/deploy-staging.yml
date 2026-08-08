@@ -92,8 +92,18 @@ jobs:
           host: ${{ secrets.AIRNET_HOST }}
           username: ${{ secrets.AIRNET_USER }}
           key: ${{ secrets.AIRNET_SSH_KEY }}
-          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh'
+          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh,server/deploy/sync-residences-images.sh'
           target: '/opt/ibuild/deploy/'
+          strip_components: 2
+
+      - name: Upload residence images
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
+          source: 'server/residences-images/*'
+          target: '/tmp/residences-images-staging/'
           strip_components: 2
 
       - name: Pull and restart API
@@ -119,6 +129,7 @@ jobs:
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
             echo "IBUILD_IMAGE=${NEW_IMAGE}" > .env
+            bash /opt/ibuild/deploy/sync-residences-images.sh /tmp/residences-images-staging
             docker compose pull
             docker compose up -d --remove-orphans
             ok=0

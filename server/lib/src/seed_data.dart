@@ -108,6 +108,7 @@ List<Map<String, dynamic>> _apartmentUnits({
   required double basePrice,
   required double baseRent,
   bool mixedRent = true,
+  String? unitPhoto,
 }) {
   final units = <Map<String, dynamic>>[];
   var i = 0;
@@ -134,6 +135,7 @@ List<Map<String, dynamic>> _apartmentUnits({
           rentMonthly: isRent ? baseRent + (rooms * 85) : null,
           planColumn: col,
           planRow: floor - 1,
+          photo: unitPhoto,
         ),
       );
       i++;
@@ -206,8 +208,13 @@ Map<String, dynamic> _summarizeProject(Map<String, dynamic> project) {
   return project;
 }
 
-/// NestOne — pilot catalogue entry (apartments, offices, rent, map pin).
-List<Map<String, dynamic>> buildProjectsSeed() {
+/// NestOne + Hills Blue — real catalogue entries with bundled photos.
+List<Map<String, dynamic>> buildProjectsSeed() => [
+  _buildNestOne(),
+  _buildHillsBlue(),
+];
+
+Map<String, dynamic> _buildNestOne() {
   final developer = {
     'id': 'dev-nestone',
     'name': 'NestOne Development',
@@ -231,6 +238,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
     basePrice: 52000,
     baseRent: 480,
     mixedRent: true,
+    unitPhoto: staticResidencePhoto('nestone.png'),
   );
   final officeUnits = _officeUnits(
     buildingId: officeId,
@@ -239,7 +247,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
     baseRent: 950,
   );
 
-  final project = _summarizeProject({
+  return _summarizeProject({
     'id': 'prj-nestone',
     'name': 'NestOne',
     'type': 'residential_complex',
@@ -321,6 +329,125 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       },
     ],
   });
+}
 
-  return [project];
+Map<String, dynamic> _buildHillsBlue() {
+  final developer = {
+    'id': 'dev-hills-group',
+    'name': 'Hills Group',
+    'logoUrl': null,
+    'rating': 4.9,
+    'projectsCount': 1,
+    'phone': '+998 78 120 64 64',
+    'agentName': 'Dilshod Karimov',
+    'agentPhone': '+998 90 120 64 64',
+    'agentAvatarUrl': _placeholderImage('agent-hills', 200, 200),
+  };
+
+  const tower1Id = 'bld-hills-t1';
+  const tower2Id = 'bld-hills-t2';
+  final hillsPhoto = staticResidencePhoto('hillsblue.jpg');
+
+  final tower1Units = _apartmentUnits(
+    buildingId: tower1Id,
+    floors: 12,
+    perFloor: 4,
+    offplan: true,
+    basePrice: 46000,
+    baseRent: 520,
+    mixedRent: false,
+    unitPhoto: hillsPhoto,
+  );
+  final tower2Units = _apartmentUnits(
+    buildingId: tower2Id,
+    floors: 12,
+    perFloor: 4,
+    offplan: true,
+    basePrice: 48000,
+    baseRent: 540,
+    mixedRent: false,
+    unitPhoto: hillsPhoto,
+  );
+
+  return _summarizeProject({
+    'id': 'prj-hills-blue',
+    'name': 'Hills Blue',
+    'type': 'residential_complex',
+    'status': 'under_construction',
+    'district': 'Yunusabad',
+    'address': 'Chingiz Aitmatov ko\'chasi 37B, Badamzar, Tashkent',
+    'lat': 41.3528,
+    'lng': 69.3012,
+    'developer': developer,
+    'description':
+        'Premium residential complex by Hills Group in Yunusabad\'s Badamzar '
+        'district: twin 22-storey towers with asymmetric facades, 3.5 m ceiling '
+        'heights, underground parking and white-box handover. Completion Q1 2027.',
+    'amenities': const [
+      'Underground parking',
+      'Landscaped courtyard',
+      'Gym',
+      '24/7 security',
+      'High-speed elevators',
+      'Concierge',
+      'Smart home systems',
+    ],
+    'tags': const ['Premium', 'New build', 'Installments'],
+    'constructionProgress': 38,
+    'plannedProgress': 42,
+    'completionDate': '2027-03-01T00:00:00.000Z',
+    'rating': 4.9,
+    'isFeatured': true,
+    'isPublished': true,
+    'moderationStatus': 'approved',
+    'moderationNote': null,
+    'gallery': [
+      _media(
+        id: 'med-hills-cover',
+        type: 'photo',
+        url: staticResidencePhoto('hillsblue.jpg'),
+        isCover: true,
+      ),
+      _media(
+        id: 'med-hills-banner',
+        type: 'photo',
+        url: staticResidencePhoto('hills-blue-banner.webp'),
+        sortOrder: 1,
+      ),
+    ],
+    'offers': [
+      {
+        'id': 'off-hills-installment',
+        'projectId': 'prj-hills-blue',
+        'type': 'installment',
+        'title': 'Flexible installment until handover',
+        'description': '30% down payment, balance split monthly until Q1 2027.',
+        'startsAt': null,
+        'endsAt': '2027-01-01T00:00:00.000Z',
+        'downPaymentPercent': 0.3,
+        'termMonths': 24,
+        'interestRate': 0.0,
+      },
+    ],
+    'buildings': [
+      {
+        'id': tower1Id,
+        'projectId': 'prj-hills-blue',
+        'name': 'Tower 1',
+        'floors': 22,
+        'constructionProgress': 42,
+        'completionDate': '2027-03-01T00:00:00.000Z',
+        'units': tower1Units,
+      },
+      {
+        'id': tower2Id,
+        'projectId': 'prj-hills-blue',
+        'name': 'Tower 2',
+        'floors': 22,
+        'constructionProgress': 35,
+        'completionDate': '2027-03-01T00:00:00.000Z',
+        'units': tower2Units,
+      },
+    ],
+  });
 }
