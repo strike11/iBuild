@@ -77,8 +77,8 @@ echo "==> Verify"
 curl -fsS "http://${HOST}:4000/v1/projects?limit=5" | python3 -c \
   "import sys,json; d=json.load(sys.stdin); print('projects', d['meta']['total']); [print(' -', p['name']) for p in d['data']]"
 curl -fsSI "http://${HOST}:4000/v1/static/residences/nestone.png" | head -1
-curl -fsSI "http://${HOST}:4000/v1/static/residences/hillsblue.jpg" | head -1
-curl -fsSI "http://${HOST}/v1/static/residences/hillsblue.jpg" | head -1 || true
+curl -fsSI "http://${HOST}:4000/v1/static/residences/hillsblue.png" | head -1
+curl -fsSI "http://${HOST}/v1/static/residences/hillsblue.png" | head -1 || true
 curl -fsSI "http://${HOST}/" | head -1 || true
 curl -fsSI "http://${HOST}:8080/" | head -1 || true
 

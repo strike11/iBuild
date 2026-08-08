@@ -16,4 +16,4 @@ bash /opt/ibuild/deploy/sync-residences-images.sh /opt/ibuild/server/residences-
 
 echo "==> Verify via nginx"
 curl -fsSI http://127.0.0.1/v1/static/residences/nestone.png | head -3
-curl -fsSI http://127.0.0.1/v1/static/residences/hillsblue.jpg | head -3
+curl -fsSI http://127.0.0.1/v1/static/residences/hillsblue.png | head -3

@@ -168,6 +168,10 @@ jobs:
         env:
           HOST: ${{ needs.check-secrets.outputs.host }}
         run: |
+          if [ -z "$HOST" ]; then
+            echo "AIRNET_HOST is empty — cannot bake API URLs into web builds." >&2
+            exit 1
+          fi
           cat > b2b/dart_defines.staging.json <<JSON
           {"API_BASE_URL":"http://${HOST}/v1","WS_URL":"ws://${HOST}/v1/ws"}
           JSON

@@ -19,4 +19,4 @@ sleep 18
 echo "==> Verify"
 curl -fsS 'http://127.0.0.1:4000/v1/projects?limit=10' | python3 -c "import sys,json; d=json.load(sys.stdin); print('projects', d['meta']['total']); [print(' -', p['name'], p.get('gallery',[{}])[0].get('url','')) for p in d['data']]"
 curl -fsSI 'http://127.0.0.1:4000/v1/static/residences/nestone.png' | head -1
-curl -fsSI 'http://127.0.0.1:4000/v1/static/residences/hillsblue.jpg' | head -1
+curl -fsSI 'http://127.0.0.1:4000/v1/static/residences/hillsblue.png' | head -1

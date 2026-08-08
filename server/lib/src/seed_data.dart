@@ -346,7 +346,7 @@ Map<String, dynamic> _buildHillsBlue() {
 
   const tower1Id = 'bld-hills-t1';
   const tower2Id = 'bld-hills-t2';
-  final hillsPhoto = staticResidencePhoto('hillsblue.jpg');
+  final hillsPhoto = staticResidencePhoto('hillsblue.png');
 
   final tower1Units = _apartmentUnits(
     buildingId: tower1Id,
@@ -405,7 +405,7 @@ Map<String, dynamic> _buildHillsBlue() {
       _media(
         id: 'med-hills-cover',
         type: 'photo',
-        url: staticResidencePhoto('hillsblue.jpg'),
+        url: staticResidencePhoto('hillsblue.png'),
         isCover: true,
       ),
       _media(
