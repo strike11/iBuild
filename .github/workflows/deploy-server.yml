@@ -130,7 +130,7 @@ jobs:
             cd /opt/ibuild/deploy
 
             if [ ! -f /opt/ibuild/server/.env ]; then
-              echo "ERROR: /opt/ibuild/server/.env missing. Copy .env.example and fill production secrets (see docs/DEPLOYMENT_DOCKER.md)."
+              echo "ERROR: /opt/ibuild/server/.env missing. Copy .env.example and fill production secrets."
               exit 1
             fi
 

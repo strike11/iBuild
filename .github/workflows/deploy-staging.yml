@@ -1,8 +1,7 @@
 name: Deploy (staging VDS)
 
 # Push to main → rebuild and ship API (Docker) + B2B/B2C static web apps.
-# Requires repository secrets: AIRNET_HOST, AIRNET_USER, AIRNET_SSH_KEY
-# (see docs/GITHUB_DEPLOY.md).
+# Requires repository secrets: AIRNET_HOST, AIRNET_USER, AIRNET_SSH_KEY.
 
 on:
   workflow_dispatch:

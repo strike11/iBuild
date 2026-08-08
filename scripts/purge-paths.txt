@@ -17,6 +17,10 @@ export_pdf.js
 export_pptx.js
 package.json
 package-lock.json
+residences-images/
+server/residences-images/
+docs/
+DEMO.md
 docs/HOSTING_AHOST.md
 scripts/_check-admin.mjs
 scripts/_check-api.mjs
