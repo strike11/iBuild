@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ensure local env files exist (never overwrite existing).
+# Create local env files from templates if missing (no overwrite).
 set -euo pipefail
 # shellcheck source=./_common.sh
 source "$(cd "$(dirname "$0")" && pwd)/_common.sh"

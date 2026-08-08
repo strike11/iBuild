@@ -1,9 +1,4 @@
-/// Seed dataset: Tashkent residential complexes and business centres.
-///
-/// Plain JSON-shaped `Map`s (not the Flutter `freezed` models) so this server
-/// has zero compile-time coupling to the client — the wire shape (field names,
-/// enum wire values) simply mirrors `b2c/lib/models/*.dart` /
-/// `models/enums.dart`. Keep the two in sync by hand if either changes.
+/// Seed catalogue (JSON maps). Wire shape matches `b2c/lib/models` — keep in sync.
 library;
 
 int _idCounter = 0;
@@ -70,9 +65,7 @@ Map<String, dynamic> _media({
   'isCover': isCover,
 };
 
-/// One distinct apartment/office layout inside a building: how many rooms
-/// (null for offices), typical area, and a shared floor-plan placeholder so
-/// "look inside" browsing can group units by layout.
+/// Unit layout: rooms (null for offices), area, label.
 class _LayoutSpec {
   const _LayoutSpec({
     this.rooms,
@@ -100,10 +93,7 @@ const _officeLayouts = [
   _LayoutSpec(area: 120, label: 'Corner suite', layoutName: 'Corner suite'),
 ];
 
-/// Street-retail / ground-floor commercial units (Konseptsiya §4.3):
-/// distinct from offices — street-facing shopfronts sized for cafes,
-/// pharmacies, small shops, sold or rented by the same developer alongside
-/// the residential units above them.
+/// Street-retail shopfront layouts (distinct from offices).
 const _retailLayouts = [
   _LayoutSpec(area: 32, label: 'Kiosk unit', layoutName: 'Kiosk unit'),
   _LayoutSpec(area: 68, label: 'Shopfront', layoutName: 'Shopfront'),
@@ -114,9 +104,7 @@ const _retailLayouts = [
   ),
 ];
 
-/// Builds one building with `floors` levels and `perFloor` units per level,
-/// cycling through [layouts]. `soldRatio`/`reservedRatio` roughly control how
-/// "mature" the sales stage looks (ready projects skew sold/rented).
+/// One building: `floors` × `perFloor`, cycling [layouts]; sold/reserved ratios set maturity.
 Map<String, dynamic> buildBuilding({
   required String projectId,
   required String name,
@@ -232,9 +220,7 @@ Map<String, dynamic> _offer({
   String? description,
   DateTime? startsAt,
   DateTime? endsAt,
-  // Only meaningful for `type: 'installment'` offers — left `null` for
-  // discount/rentPromo offers, matching how other optional fields (e.g.
-  // `constructionProgress` on projects) are represented in this seed data.
+  // Installment-only; null for discount/rentPromo.
   double? downPaymentPercent,
   int? termMonths,
   double? interestRate,
@@ -269,6 +255,7 @@ Map<String, dynamic> _project({
   List<String>? galleryUrls,
   required List<Map<String, dynamic>> buildings,
   int? constructionProgress,
+  int? plannedProgress,
   DateTime? completionDate,
   List<Map<String, dynamic>> offers = const [],
 }) {
@@ -318,6 +305,8 @@ Map<String, dynamic> _project({
     'rentMin': _minOf(rentUnits, 'rentMonthly'),
     'rentMax': _maxOf(rentUnits, 'rentMonthly'),
     'constructionProgress': constructionProgress,
+    // Usually a bit above constructionProgress; two complexes trip delivery-risk.
+    'plannedProgress': plannedProgress,
     'completionDate': completionDate?.toIso8601String(),
     'rating': rating,
     'availableUnits': available,
@@ -349,11 +338,7 @@ Map<String, dynamic> _project({
   };
 }
 
-/// Builds the full seed catalogue: 12 residential complexes + 3 business
-/// centres across real Tashkent districts, each with a developer + assigned
-/// realtor (name & phone), amenities (pool/sauna/gym/...), sale and/or rent
-/// pricing, multi-floor buildings with varied apartment/office layouts, photo
-/// + floor-plan placeholders, and a couple of active offers.
+/// Full seed catalogue (residential, business centres, street retail).
 List<Map<String, dynamic>> buildProjectsSeed() {
   final projects = <Map<String, dynamic>>[];
 
@@ -472,6 +457,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: true,
       photoSeeds: const [1, 3, 7],
       constructionProgress: 48,
+      plannedProgress: 54,
       completionDate: DateTime(2027, 9),
       buildings: [
         buildBuilding(
@@ -646,6 +632,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: true,
       photoSeeds: const [4, 0, 9],
       constructionProgress: 71,
+      plannedProgress: 78,
       completionDate: DateTime(2027, 2),
       buildings: [
         buildBuilding(
@@ -711,6 +698,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: false,
       photoSeeds: const [5, 1, 11],
       constructionProgress: 8,
+      plannedProgress: 26,
       completionDate: DateTime(2028, 6),
       buildings: [
         buildBuilding(
@@ -820,6 +808,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: false,
       photoSeeds: const [7, 3, 0],
       constructionProgress: 34,
+      plannedProgress: 41,
       completionDate: DateTime(2027, 11),
       buildings: [
         buildBuilding(
@@ -1037,6 +1026,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: false,
       photoSeeds: const [11, 7, 4],
       constructionProgress: 22,
+      plannedProgress: 35,
       completionDate: DateTime(2028, 1),
       buildings: [
         buildBuilding(
@@ -1317,6 +1307,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: true,
       photoSeeds: const [6, 11, 2],
       constructionProgress: 3,
+      plannedProgress: 9,
       completionDate: DateTime(2028, 10),
       buildings: [
         buildBuilding(
@@ -1395,9 +1386,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
     ),
   );
 
-  // 19. Hills Blue — Yunusabad — premium new build (Hills Group / AYSEL).
-  // Real marketing photo from `residences-images/hills-blue-banner.webp`.
-  // Source: hillsblue.uz, salomuy.uz — 5×22-floor towers, Badamzar, Q1 2027.
+  // 19. Hills Blue — Yunusabad — premium new build (hills-blue-banner.webp).
   projects.add(
     _project(
       name: 'Hills Blue',
@@ -1441,6 +1430,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
         _photo(0),
       ],
       constructionProgress: 38,
+      plannedProgress: 44,
       completionDate: DateTime(2027, 3),
       buildings: [
         buildBuilding(
@@ -1525,6 +1515,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: true,
       photoSeeds: const [4, 1, 8],
       constructionProgress: 55,
+      plannedProgress: 78,
       completionDate: DateTime(2025, 3),
       buildings: [
         buildBuilding(
@@ -1592,6 +1583,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: false,
       photoSeeds: const [3, 7, 2],
       constructionProgress: 28,
+      plannedProgress: 33,
       completionDate: DateTime(2027, 12),
       buildings: [
         buildBuilding(
@@ -1649,6 +1641,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: false,
       photoSeeds: const [6, 10, 1],
       constructionProgress: 44,
+      plannedProgress: 50,
       completionDate: DateTime(2026, 3),
       buildings: [
         buildBuilding(
@@ -1705,6 +1698,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: true,
       photoSeeds: const [2, 8, 4],
       constructionProgress: 32,
+      plannedProgress: 44,
       completionDate: DateTime(2026, 12),
       buildings: [
         buildBuilding(
@@ -1772,6 +1766,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
       isFeatured: false,
       photoSeeds: const [11, 3, 6],
       constructionProgress: 48,
+      plannedProgress: 53,
       completionDate: DateTime(2027, 3),
       buildings: [
         buildBuilding(
@@ -1803,9 +1798,7 @@ List<Map<String, dynamic>> buildProjectsSeed() {
     ),
   );
 
-  // 25. Chilanzar Retail Row — street retail (Konseptsiya §4.3): ground-floor
-  // commercial units sold and rented directly by the developer, distinct
-  // from both residential complexes and business-centre office floors.
+  // 25. Chilanzar Retail Row — street retail (sale + rent).
   projects.add(
     _project(
       name: 'Chilanzar Retail Row',

@@ -1,7 +1,4 @@
--- Photo Reports API (construction progress). Residence admins post dated
--- site photos for a project; the client groups them by month. An optional
--- `progressPercent` also updates the parent project's `construction_progress`
--- (see Store.addPhotoReport in lib/src/store.dart).
+-- Construction photo reports; optional progressPercent updates project progress.
 CREATE TABLE IF NOT EXISTS photo_reports (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,

@@ -1,6 +1,4 @@
--- Platform trust & safety: let a system admin freeze an account with a
--- reason and their own name, surfaced back on the banned account itself
--- (see `Store.banUser` / `banGuardMiddleware` in lib/src).
+-- Account ban fields (reason, banned_by_name, banned_at) for Store.banUser.
 
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS banned BOOLEAN NOT NULL DEFAULT FALSE,

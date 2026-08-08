@@ -2,10 +2,12 @@
 # /opt/ibuild/deploy/docker-compose.yml and replaces the ibuild-api systemd
 # unit (which stays in this repo for non-Docker installs).
 #
-# Two separate env files, deliberately:
-#   /opt/ibuild/deploy/.env  — IBUILD_IMAGE only. Rewritten by CI on every
-#                              deploy, so it must never hold secrets.
-#   /opt/ibuild/server/.env  — application secrets. CI never touches it.
+# Bootstrap: server/deploy/setup-docker-server.sh (Ubuntu 22.04, IP staging).
+# First deploy: /opt/ibuild/deploy/first-deploy.sh build|pull
+#
+# Two env files:
+#   /opt/ibuild/deploy/.env  — IBUILD_IMAGE only (CI rewrites; no secrets).
+#   /opt/ibuild/server/.env  — application secrets (CI never touches).
 #
 # Usage on the server:
 #   cd /opt/ibuild/deploy && docker compose up -d

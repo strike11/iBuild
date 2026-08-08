@@ -1,20 +1,5 @@
--- RLS extension (Track A.5): defense in depth for the catalogue/CRM tables,
--- mirroring the policy pattern established in
--- 0004_org_kyc_subscription_rls.sql / 0007_tickets.sql —
---   * service / system_admin: full bypass.
---   * owner: rows reachable from a developer the caller owns
---     (developers.owner_user_id = app.user_id), via projects.developer_id
---     and onward through buildings/units/media/offers/leads.
---   * public read: published + moderation-approved projects (and everything
---     hanging off them) stay visible to anonymous/ordinary-user SELECTs.
---
--- NOTE: because these tables' write-throughs in PgPersistence are
--- fire-and-forget, they now run via the `service`-role transaction helper
--- (`_asService` in lib/src/db/pg_persistence.dart) exactly like the other
--- FORCE-RLS tables already do — otherwise a request's ambient
--- app.role/app.user_id (set per-request by authMiddleware on the shared
--- connection) could have already moved on to a different caller by the time
--- a queued write actually executes.
+-- Catalogue/CRM RLS: service/system_admin bypass; owner by developer; public
+-- read for published+approved. Fire-and-forget writes use `_asService`.
 
 -- --- projects --------------------------------------------------------------
 

@@ -1,17 +1,4 @@
--- Fix catalogue RLS write isolation + durable catalogue seed guard.
---
--- Problem 1 (RLS): migration 0012 used a single FOR ALL policy whose USING
--- clause included "published + approved" so that anonymous SELECTs could see
--- the public catalogue. In PostgreSQL, FOR ALL applies that USING expression
--- to DELETE/UPDATE too — so any session without a tenant role could
--- silently delete published projects (0-error, 0-or-N rows) while owner-only
--- drafts were blocked. Split SELECT (public read) from write (service /
--- system_admin / owning developer only).
---
--- Problem 2 (reseed): Store.create() treated an empty `projects` table as
--- "first boot" and re-ran seedFrom(). Deleting every complex via the admin
--- panel then restarting the server resurrected the full seed catalogue.
--- Track catalogue_seeded in app_meta so an intentional wipe stays wiped.
+-- Split catalogue RLS SELECT vs write; `app_meta.catalogue_seeded` stops reseed after wipe.
 
 -- --- Seed guard -------------------------------------------------------------
 
@@ -21,9 +8,7 @@ CREATE TABLE IF NOT EXISTS app_meta (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Existing databases that already have catalogue rows (or any developer)
--- are marked seeded so the next boot does not re-insert the demo catalogue
--- after an admin wipe.
+-- Mark already-populated DBs as seeded.
 INSERT INTO app_meta (key, value)
 SELECT 'catalogue_seeded', 'true'
 WHERE EXISTS (SELECT 1 FROM projects LIMIT 1)
@@ -47,9 +32,7 @@ BEGIN
     END IF;
 END $$;
 
--- Leads.project_id was intentionally loosely typed in 0001_init; clean
--- orphans and add CASCADE so project hard-delete does not leave CRM rows
--- pointing at a missing complex.
+-- Add leads.project_id FK + CASCADE; drop orphans first.
 DO $$
 BEGIN
     IF NOT EXISTS (

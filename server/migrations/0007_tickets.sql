@@ -1,9 +1,4 @@
--- Support tickets: any authenticated user (buyer/renter, developer/residence
--- admin) can open a ticket; platform (system) admins triage, reply, and
--- resolve them from the B2B "Тикеты" section. Replies are stored as a JSONB
--- array on the ticket row — a ticket's thread is always read/written as a
--- whole, so a normalized child table would add join overhead with no
--- benefit here.
+-- Support tickets. Replies live as JSON on the row (read/write whole thread).
 CREATE TABLE IF NOT EXISTS tickets (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

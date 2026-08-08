@@ -1,0 +1,212 @@
+name: Deploy (staging VDS)
+
+# Push to main → rebuild and ship API (Docker) + B2B/B2C static web apps.
+# Requires repository secrets: AIRNET_HOST, AIRNET_USER, AIRNET_SSH_KEY
+# (see docs/GITHUB_DEPLOY.md).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+      host: ${{ steps.check.outputs.host }}
+    steps:
+      - id: check
+        env:
+          AIRNET_HOST: ${{ secrets.AIRNET_HOST }}
+        run: |
+          if [ -n "$AIRNET_HOST" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "host=${AIRNET_HOST}" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "host=" >> "$GITHUB_OUTPUT"
+          fi
+
+  # --- API -------------------------------------------------------------------
+  api-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+        working-directory: server
+      - run: |
+          dart analyze
+          dart test
+        working-directory: server
+
+  api-build:
+    runs-on: ubuntu-latest
+    needs: api-test
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: |
+          owner_repo="$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=ghcr.io/${owner_repo}/api:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "repo=ghcr.io/${owner_repo}/api" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: server
+          file: server/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ steps.meta.outputs.repo }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  api-deploy:
+    runs-on: ubuntu-latest
+    needs: [api-build, check-secrets]
+    if: needs.check-secrets.outputs.configured == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync deploy files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
+          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh'
+          target: '/opt/ibuild/deploy/'
+          strip_components: 2
+
+      - name: Pull and restart API
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          NEW_IMAGE: ${{ needs.api-build.outputs.image }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
+          envs: NEW_IMAGE,GHCR_USER,GHCR_TOKEN
+          script: |
+            set -euo pipefail
+            chmod +x /opt/ibuild/deploy/*.sh 2>/dev/null || true
+            cd /opt/ibuild/deploy
+            if [ ! -f /opt/ibuild/server/.env ]; then
+              echo "ERROR: /opt/ibuild/server/.env missing on the VDS."
+              exit 1
+            fi
+            PREV="$(docker inspect --format '{{.Config.Image}}' ibuild-api 2>/dev/null || true)"
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+            echo "IBUILD_IMAGE=${NEW_IMAGE}" > .env
+            docker compose pull
+            docker compose up -d --remove-orphans
+            ok=0
+            for _ in $(seq 1 90); do
+              if curl -fsS http://127.0.0.1:4000/v1/health >/dev/null 2>&1; then
+                ok=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Health check failed — rolling back"
+              docker compose logs --tail=200 api || true
+              if [ -n "$PREV" ]; then
+                echo "IBUILD_IMAGE=${PREV}" > .env
+                docker compose up -d
+              fi
+              exit 1
+            fi
+            docker image prune -af --filter 'until=168h'
+
+  # --- Flutter web (B2B + B2C) -----------------------------------------------
+  web-deploy:
+    runs-on: ubuntu-latest
+    needs: check-secrets
+    if: needs.check-secrets.outputs.configured == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build defines for staging IP
+        env:
+          HOST: ${{ needs.check-secrets.outputs.host }}
+        run: |
+          cat > b2b/dart_defines.staging.json <<JSON
+          {"API_BASE_URL":"http://${HOST}/v1","WS_URL":"ws://${HOST}/v1/ws"}
+          JSON
+          cat > b2c/dart_defines.staging.json <<JSON
+          {"USE_MOCK_DATA":"false","API_BASE_URL":"http://${HOST}/v1","WS_URL":"ws://${HOST}/v1/ws","BUSINESS_URL":"http://${HOST}:8080"}
+          JSON
+
+      - name: Build B2B admin
+        working-directory: b2b
+        run: |
+          flutter pub get
+          flutter build web --release --pwa-strategy=none \
+            --dart-define-from-file=dart_defines.staging.json
+
+      - name: Build B2C app
+        working-directory: b2c
+        run: |
+          flutter pub get
+          flutter build web --release --pwa-strategy=none \
+            --dart-define-from-file=dart_defines.staging.json
+
+      - name: Pack web builds
+        run: |
+          tar czf b2c-web.tgz -C b2c/build web
+          tar czf b2b-web.tgz -C b2b/build web
+
+      - name: Upload archives
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
+          source: 'b2c-web.tgz,b2b-web.tgz'
+          target: '/tmp'
+
+      - name: Install static files
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            rm -rf /tmp/b2c-web /tmp/b2b-web
+            mkdir -p /tmp/b2c-web /tmp/b2b-web
+            tar xzf /tmp/b2c-web.tgz -C /tmp/b2c-web
+            tar xzf /tmp/b2b-web.tgz -C /tmp/b2b-web
+            sudo rsync -a --delete /tmp/b2c-web/web/ /var/www/ibuild/app/
+            sudo rsync -a --delete /tmp/b2b-web/web/ /var/www/ibuild/admin/
+            sudo rm -f /var/www/ibuild/admin/flutter_service_worker.js
+            sudo chown -R www-data:www-data /var/www/ibuild
+            rm -rf /tmp/b2c-web /tmp/b2b-web /tmp/b2c-web.tgz /tmp/b2b-web.tgz

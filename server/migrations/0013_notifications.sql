@@ -1,10 +1,4 @@
--- Admin notifications inbox: every developer-side change that needs a
--- system admin's attention (new project, project submitted for review,
--- project edited, verification document uploaded, developer application
--- submitted) is recorded here and pushed live over `/v1/ws`
--- (`adminNotification`, admin-only — see `Store.notifyAdmins`). Platform
--- admins mark entries read individually or in bulk via
--- `PATCH /v1/platform/notifications/*`.
+-- Admin notification inbox (pushed on `/v1/ws` as adminNotification).
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL, -- project_created | project_submitted | project_updated | document_uploaded | developer_submitted

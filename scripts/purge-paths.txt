@@ -1,0 +1,32 @@
+# Paths removed from public git history by scripts/purge-private-from-history.*
+# One path per line. Directories must end with /
+
+__MACOSX/
+node_modules/
+presentation/
+skills/
+investment/
+ibuild-wiki/
+graphify-out/
+residences-images/
+IBUILD_APP_PLAN.md
+iBuild_Prototype_Spec.html
+INVESTOR_READINESS_ANALYSIS.md
+PRESENTATION_READINESS.md
+export_pdf.js
+export_pptx.js
+package.json
+package-lock.json
+docs/HOSTING_AHOST.md
+scripts/_check-admin.mjs
+scripts/_check-api.mjs
+scripts/_debug-otp.mjs
+scripts/_fix-apt.mjs
+scripts/_fix-healthcheck.mjs
+scripts/_patch-env.mjs
+scripts/_remote-bootstrap.mjs
+scripts/_remote-first-deploy.mjs
+scripts/_upload-b2b.mjs
+scripts/_upload-frontends.mjs
+scripts/_setup-sudoers.mjs
+scripts/setup-github-deploy-key.mjs

@@ -1,12 +1,4 @@
--- Initial normalized schema for the iBuild PostgreSQL persistence layer.
---
--- Mirrors the nested JSON shape produced by `buildProjectsSeed()` in
--- `lib/src/seed_data.dart` (project -> developer + gallery + buildings ->
--- units -> media, plus offers), normalized so real SQL filtering/
--- pagination (`GET /v1/projects?status=&district=&type=`) and lead lookups
--- (`leads.project_id`) can run as indexed queries instead of in-memory
--- scans. Applied once by `Database.migrate()` and tracked in
--- `schema_migrations`.
+-- Initial schema: seed_data JSON shape normalized for SQL filters / lead FKs.
 
 CREATE TABLE IF NOT EXISTS developers (
     id TEXT PRIMARY KEY,
@@ -98,9 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_units_building_id ON units (building_id);
 CREATE INDEX IF NOT EXISTS idx_units_project_id ON units (project_id);
 CREATE INDEX IF NOT EXISTS idx_units_status ON units (status);
 
--- Polymorphic media: attached to exactly one of a project (gallery, in
--- `_project.gallery`) or a unit (photo + floor plan, in
--- `buildBuilding`'s per-unit `media` list) — never both.
+-- Polymorphic media: exactly one of project_id or unit_id.
 CREATE TABLE IF NOT EXISTS media (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL,

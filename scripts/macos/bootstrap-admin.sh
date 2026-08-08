@@ -7,8 +7,7 @@ source "$(cd "$(dirname "$0")" && pwd)/_common.sh"
 PHONE="${1:-+998901111111}"
 SECRET="${BOOTSTRAP_ADMIN_SECRET:-ibuild-local-demo-secret}"
 
-# Outside production, bootstrap is enabled; ensure a non-legacy secret is set
-# in .env if you use this script repeatedly.
+# Append BOOTSTRAP_ADMIN_SECRET to .env when missing (non-legacy default).
 if ! grep -q '^BOOTSTRAP_ADMIN_SECRET=' "$SERVER_DIR/.env" 2>/dev/null; then
   echo "BOOTSTRAP_ADMIN_SECRET=$SECRET" >>"$SERVER_DIR/.env"
   echo "Appended BOOTSTRAP_ADMIN_SECRET to server/.env — restart API if already running."

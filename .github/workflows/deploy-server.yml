@@ -1,12 +1,8 @@
 name: Deploy API (Docker)
 
 on:
+  # Superseded by deploy-staging.yml (full stack). Kept for manual API-only rollouts.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'server/**'
-      - '.github/workflows/deploy-server.yml'
 
 # Queue deploys instead of cancelling them: two quick pushes to main must land
 # in order, and cancelling mid-rollout can leave the server on a half-applied
@@ -81,10 +77,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # The `secrets` context is not available in a job-level `if:` — referencing
-  # it there makes the whole workflow fail to parse with "Unrecognized
-  # named-value: 'secrets'". Resolve it to a plain output here instead, so
-  # forks and unconfigured repos skip the deploy rather than erroring.
+  # Job-level `if:` cannot use `secrets` (parse error). Resolve to an output
+  # so forks/unconfigured repos skip deploy without failing the workflow.
   check-secrets:
     runs-on: ubuntu-latest
     outputs:
@@ -92,9 +86,9 @@ jobs:
     steps:
       - id: check
         env:
-          AHOST_HOST: ${{ secrets.AHOST_HOST }}
+          AIRNET_HOST: ${{ secrets.AIRNET_HOST }}
         run: |
-          if [ -n "$AHOST_HOST" ]; then
+          if [ -n "$AIRNET_HOST" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
@@ -110,9 +104,9 @@ jobs:
       - name: Copy compose file
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.AHOST_HOST }}
-          username: ${{ secrets.AHOST_USER }}
-          key: ${{ secrets.AHOST_SSH_KEY }}
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
           source: 'server/deploy/docker-compose.yml'
           target: '/opt/ibuild/deploy/'
           strip_components: 2
@@ -127,9 +121,9 @@ jobs:
           # image is already in the local Docker cache.
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          host: ${{ secrets.AHOST_HOST }}
-          username: ${{ secrets.AHOST_USER }}
-          key: ${{ secrets.AHOST_SSH_KEY }}
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
           envs: NEW_IMAGE,GHCR_USER,GHCR_TOKEN
           script: |
             set -euo pipefail

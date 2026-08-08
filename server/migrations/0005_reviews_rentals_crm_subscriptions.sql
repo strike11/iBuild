@@ -1,12 +1,4 @@
--- Konseptsiya alignment: reviews/trust layer (§9), owner secondary/primary
--- rental listings (§5, §8), lead CRM tags/scoring (§8), and the
--- subscription-tier ladder (§11.A.1) replacing the single $299/mo plan.
---
--- NOTE: as of this migration, `Store` (lib/src/store.dart) keeps these
--- entities in memory only — `PgPersistence` does not yet read/write them.
--- The schema below is forward-looking so a later persistence pass has a
--- stable target; it does not change current runtime behavior when
--- `DB_HOST` is set (existing tables/columns are unaffected).
+-- Reviews, owner rentals, lead CRM fields, subscription tiers.
 
 CREATE TABLE IF NOT EXISTS reviews (
     id TEXT PRIMARY KEY,
@@ -26,10 +18,8 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE INDEX IF NOT EXISTS idx_reviews_project ON reviews (project_id, status);
 CREATE INDEX IF NOT EXISTS idx_reviews_developer ON reviews (developer_id, status);
 
--- Owner-submitted rental listings — deliberately separate from
--- projects/units. `deal_type` is CHECK-constrained to 'rent' only: this
--- table must never carry a secondary-sale listing, enforcing Konseptsiya
--- §5's "никакой купли-продажи вторички" rule at the schema level too.
+-- Owner rental listings (separate from projects/units). `deal_type` = 'rent' only
+-- (no secondary sale at schema level).
 CREATE TABLE IF NOT EXISTS rental_listings (
     id TEXT PRIMARY KEY,
     owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -91,7 +81,4 @@ VALUES
     ('corporate', 'Corporate', 799.00, -1, -1, 1000, 2.00)
 ON CONFLICT (id) DO NOTHING;
 
--- Street-retail is a `projects.type` value and `units.kind` value —
--- both columns are free-form TEXT already, so no DDL change is required
--- to add 'street_retail' / 'retail'; application-layer validation is the
--- source of truth (see lib/src/seed_data.dart, lib/src/app.dart).
+-- street_retail/retail: free-form TEXT columns; validated in app code, no DDL.

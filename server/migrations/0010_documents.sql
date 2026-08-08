@@ -1,9 +1,4 @@
--- Documents API (developer verification / trust layer). A developer must
--- have all 4 required document types (license, construction_permit,
--- land_rights, project_declaration) accepted before a platform admin can
--- approve their organization — see the gating check added to
--- `PATCH /v1/platform/developers/:id/approve` in admin_routes.dart, which is
--- what makes the "Verified" badge on B2C actually mean "documents checked".
+-- Developer verification docs. All 4 required types must be accepted before org approve.
 CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
     developer_id TEXT NOT NULL REFERENCES developers(id) ON DELETE CASCADE,

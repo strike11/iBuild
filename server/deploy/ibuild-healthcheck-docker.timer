@@ -1,0 +1,11 @@
+[Unit]
+Description=Run iBuild Docker health check every 2 minutes
+
+[Timer]
+# First boot can take several minutes (PostgreSQL migrations + catalogue seed).
+OnBootSec=10min
+OnUnitActiveSec=2min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

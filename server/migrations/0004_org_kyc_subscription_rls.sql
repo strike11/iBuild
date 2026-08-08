@@ -1,7 +1,4 @@
--- Org KYC (Uzbekistan), unique INN, subscriptions, and RLS.
--- Legal-entity fields align with state registration practice (STIR/INN,
--- legal name/address, director + PINFL, UBO acknowledgement) under
--- Law on Limited Liability Companies, personal-data (ZRU-547), and AML UBO rules.
+-- Org KYC fields (INN/STIR, legal entity, director/PINFL, UBO), subscriptions, RLS.
 
 -- --- Developers: KYC / public profile ------------------------------------
 
@@ -64,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_status
 -- --- Request context helpers for RLS -------------------------------------
 -- App sets these per request via parameterized set_config (never PgPersistence).
 
--- --- Row Level Security (defense in depth; app RBAC remains primary) -----
+-- --- Row Level Security (app RBAC remains primary) -----
 
 ALTER TABLE developers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE developers FORCE ROW LEVEL SECURITY;

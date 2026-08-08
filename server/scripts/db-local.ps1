@@ -33,9 +33,7 @@ $PgBin = Join-Path $RepoRoot '.tools\pg\pgsql\bin'
 $PgData = Join-Path $RepoRoot '.tools\pgdata'
 $PgLog = Join-Path $PgData 'server.log'
 
-# Local portable Postgres credentials: prefer server/.env, fall back to the
-# historical portable-init password (never use this on aHOST — see
-# docs/HOSTING_AHOST.md).
+# Prefer server/.env; fallback password is for local portable Postgres only.
 $EnvFile = Join-Path $PSScriptRoot '..\.env'
 $DevDbUser = 'ibuild'
 $DevDbPassword = 'changeme'

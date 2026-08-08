@@ -1,6 +1,6 @@
 [Unit]
 Description=iBuild API (Dart/Shelf)
-Documentation=file:///opt/ibuild/docs/HOSTING_AHOST.md
+Documentation=file:///opt/ibuild/docs/HOSTING_AIRNET.md
 # Boot only after the network is usable (managed Postgres is remote).
 After=network-online.target
 Wants=network-online.target

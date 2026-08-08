@@ -1,0 +1,7 @@
+[Unit]
+Description=iBuild API health watchdog (Docker)
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/opt/ibuild/deploy/healthcheck-docker.sh
