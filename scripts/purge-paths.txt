@@ -18,7 +18,6 @@ export_pptx.js
 package.json
 package-lock.json
 residences-images/
-server/residences-images/
 docs/
 DEMO.md
 docs/HOSTING_AHOST.md

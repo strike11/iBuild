@@ -55,16 +55,15 @@ WORKDIR /app
 
 COPY --from=build /build/ibuild-api /app/ibuild-api
 
-# Both are read relative to the working directory at runtime: Store applies
-# migrations/ on startup and the static handler serves residences-images/.
+# migrations/ on startup; residence photos are uploaded via admin (optional
+# bundled files in residences-images/ — created empty in the image).
 COPY migrations/ migrations/
-COPY residences-images/ residences-images/
 
 # uploads/ holds user-uploaded files and must outlive the container, so it is a
 # volume in production. Create it anyway so the app still starts when nothing
 # is mounted. private/ is KYC documents, reachable only through the
 # authenticated /v1/documents route — never the public static handler.
-RUN mkdir -p uploads/private \
+RUN mkdir -p residences-images uploads/private \
  && chown -R ibuild:ibuild /app \
  && chmod 700 uploads/private
 
