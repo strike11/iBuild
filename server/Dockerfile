@@ -55,15 +55,15 @@ WORKDIR /app
 
 COPY --from=build /build/ibuild-api /app/ibuild-api
 
-# migrations/ on startup; residence photos are uploaded via admin (optional
-# bundled files in residences-images/ — created empty in the image).
+# migrations/ on startup; bundled residence photos in residences-images/.
 COPY migrations/ migrations/
+COPY residences-images/ residences-images/
 
 # uploads/ holds user-uploaded files and must outlive the container, so it is a
 # volume in production. Create it anyway so the app still starts when nothing
 # is mounted. private/ is KYC documents, reachable only through the
 # authenticated /v1/documents route — never the public static handler.
-RUN mkdir -p residences-images uploads/private \
+RUN mkdir -p uploads/private \
  && chown -R ibuild:ibuild /app \
  && chmod 700 uploads/private
 

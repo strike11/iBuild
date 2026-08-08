@@ -1,0 +1,11 @@
+BEGIN;
+SET LOCAL app.role = 'service';
+DELETE FROM media;
+DELETE FROM offers;
+DELETE FROM units;
+DELETE FROM buildings;
+DELETE FROM leads;
+DELETE FROM reviews;
+DELETE FROM projects;
+COMMIT;
+SELECT COUNT(*) AS projects FROM projects;
