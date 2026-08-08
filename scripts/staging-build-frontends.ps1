@@ -59,6 +59,12 @@ if ($Upload) {
   Write-Host "Uploading to ${SshHost} ..."
   scp -r (Join-Path $RepoRoot "b2c/build/web") "${SshHost}:/tmp/ibuild-app-src"
   scp -r (Join-Path $RepoRoot "b2b/build/web") "${SshHost}:/tmp/ibuild-admin-src"
-  ssh $SshHost "sudo rsync -a --delete /tmp/ibuild-app-src/ /var/www/ibuild/app/ && sudo rsync -a --delete /tmp/ibuild-admin-src/ /var/www/ibuild/admin/ && sudo chown -R www-data:www-data /var/www/ibuild && rm -rf /tmp/ibuild-app-src /tmp/ibuild-admin-src"
+  ssh $SshHost @"
+docker run --rm -v /tmp/ibuild-app-src:/src:ro -v /var/www/ibuild/app:/dest alpine:3.20 sh -c 'rm -rf /dest/* && cp -a /src/. /dest/ && chown -R 33:33 /dest'
+docker run --rm -v /tmp/ibuild-admin-src:/src:ro -v /var/www/ibuild/admin:/dest alpine:3.20 sh -c 'rm -rf /dest/* && cp -a /src/. /dest/ && chown -R 33:33 /dest'
+docker run --rm -v /var/www/ibuild/admin:/dest alpine:3.20 rm -f /dest/flutter_service_worker.js 2>/dev/null || true
+bash /opt/ibuild/deploy/sync-residences-images.sh /opt/ibuild/server/residences-images
+rm -rf /tmp/ibuild-app-src /tmp/ibuild-admin-src
+"@
   Write-Host "Upload complete."
 }
