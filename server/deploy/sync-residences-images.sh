@@ -11,8 +11,8 @@ if [[ ! -d "$SRC" ]]; then
   exit 1
 fi
 
-sudo mkdir -p "$DEST"
-sudo rsync -a --delete "$SRC/" "$DEST/"
-sudo chown -R 10001:10001 "$DEST"
+mkdir -p "$DEST"
+rsync -a --delete "$SRC/" "$DEST/"
+chmod -R a+rX "$DEST"
 echo "Synced $(find "$DEST" -type f | wc -l) files to $DEST"
 ls -la "$DEST"
