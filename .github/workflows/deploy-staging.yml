@@ -21,7 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       configured: ${{ steps.check.outputs.configured }}
-      host: ${{ steps.check.outputs.host }}
     steps:
       - id: check
         env:
@@ -29,10 +28,8 @@ jobs:
         run: |
           if [ -n "$AIRNET_HOST" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
-            echo "host=${AIRNET_HOST}" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "host=" >> "$GITHUB_OUTPUT"
           fi
 
   # --- API -------------------------------------------------------------------
@@ -120,8 +117,6 @@ jobs:
           script: |
             set -euo pipefail
             chmod +x /opt/ibuild/deploy/*.sh 2>/dev/null || true
-            sudo cp -f /opt/ibuild/deploy/nginx-staging-ip.conf /etc/nginx/sites-available/ibuild-staging
-            sudo ln -sf /etc/nginx/sites-available/ibuild-staging /etc/nginx/sites-enabled/ibuild-staging
             cd /opt/ibuild/deploy
             if [ ! -f /opt/ibuild/server/.env ]; then
               echo "ERROR: /opt/ibuild/server/.env missing on the VDS."
@@ -168,7 +163,7 @@ jobs:
 
       - name: Build defines for staging IP
         env:
-          HOST: ${{ needs.check-secrets.outputs.host }}
+          HOST: ${{ secrets.AIRNET_HOST }}
         run: |
           if [ -z "$HOST" ]; then
             echo "AIRNET_HOST is empty — cannot bake API URLs into web builds." >&2
@@ -207,7 +202,7 @@ jobs:
           username: ${{ secrets.AIRNET_USER }}
           key: ${{ secrets.AIRNET_SSH_KEY }}
           source: 'b2c-web.tgz,b2b-web.tgz'
-          strip_components: 2
+          target: '/tmp'
 
       - name: Upload landing site
         uses: appleboy/scp-action@v0.1.7
@@ -227,18 +222,34 @@ jobs:
           key: ${{ secrets.AIRNET_SSH_KEY }}
           script: |
             set -euo pipefail
+
+            install_web() {
+              src="$1"
+              dest="$2"
+              docker run --rm -v "${src}:/src:ro" -v "${dest}:/dest" alpine:3.20 \
+                sh -c 'mkdir -p /dest && rm -rf /dest/* && cp -a /src/. /dest/ && chown -R 33:33 /dest && find /dest -type d -exec chmod 755 {} + && find /dest -type f -exec chmod 644 {} +'
+            }
+
             rm -rf /tmp/b2c-web /tmp/b2b-web
-            mkdir -p /tmp/b2c-web /tmp/b2b-web /var/www/ibuild/www
+            mkdir -p /tmp/b2c-web /tmp/b2b-web
             tar xzf /tmp/b2c-web.tgz -C /tmp/b2c-web
             tar xzf /tmp/b2b-web.tgz -C /tmp/b2b-web
-            sudo rsync -a --delete /tmp/b2c-web/web/ /var/www/ibuild/app/
-            sudo rsync -a --delete /tmp/b2b-web/web/ /var/www/ibuild/admin/
-            sudo rsync -a --delete /tmp/ibuild-www-src/ /var/www/ibuild/www/
-            sudo rm -f /var/www/ibuild/admin/flutter_service_worker.js
-            sudo chown -R www-data:www-data /var/www/ibuild
-            sudo cp -f /opt/ibuild/deploy/nginx-staging-ip.conf /etc/nginx/sites-available/ibuild-staging
-            sudo ln -sf /etc/nginx/sites-available/ibuild-staging /etc/nginx/sites-enabled/ibuild-staging
-            sudo rm -f /etc/nginx/sites-enabled/default
-            sudo nginx -t
-            sudo systemctl reload nginx
+            install_web /tmp/b2c-web/web /var/www/ibuild/app
+            install_web /tmp/b2b-web/web /var/www/ibuild/admin
+            install_web /tmp/ibuild-www-src /var/www/ibuild/www
+            docker run --rm -v /var/www/ibuild/admin:/dest alpine:3.20 rm -f /dest/flutter_service_worker.js 2>/dev/null || true
+
+            docker run --rm \
+              -v /opt/ibuild/deploy/nginx-staging-ip.conf:/src/staging.conf:ro \
+              -v /etc/nginx/sites-available:/avail \
+              -v /etc/nginx/sites-enabled:/enabled \
+              alpine:3.20 sh -c 'cp /src/staging.conf /avail/ibuild-staging && ln -sf /etc/nginx/sites-available/ibuild-staging /enabled/ibuild-staging && rm -f /enabled/default'
+
+            docker run --rm --privileged --pid=host -v /run:/run --user 0:0 alpine:3.20 \
+              sh -c 'kill -HUP "$(cat /run/nginx.pid)"'
+
+            if [ -x /opt/ibuild/deploy/sync-residences-images.sh ]; then
+              bash /opt/ibuild/deploy/sync-residences-images.sh /opt/ibuild/server/residences-images || true
+            fi
+
             rm -rf /tmp/b2c-web /tmp/b2b-web /tmp/b2c-web.tgz /tmp/b2b-web.tgz
