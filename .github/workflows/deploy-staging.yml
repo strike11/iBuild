@@ -92,7 +92,7 @@ jobs:
           host: ${{ secrets.AIRNET_HOST }}
           username: ${{ secrets.AIRNET_USER }}
           key: ${{ secrets.AIRNET_SSH_KEY }}
-          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh,server/deploy/sync-residences-images.sh'
+          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh,server/deploy/sync-residences-images.sh,server/deploy/nginx-staging-ip.conf,server/deploy/nginx-ibuild.uz.conf,server/deploy/nginx-app.ibuild.uz.conf,server/deploy/nginx-api.ibuild.uz.conf,server/deploy/nginx-admin.ibuild.uz.conf,server/scripts/apply-production-nginx.sh'
           target: '/opt/ibuild/deploy/'
           strip_components: 2
 
@@ -120,6 +120,8 @@ jobs:
           script: |
             set -euo pipefail
             chmod +x /opt/ibuild/deploy/*.sh 2>/dev/null || true
+            sudo cp -f /opt/ibuild/deploy/nginx-staging-ip.conf /etc/nginx/sites-available/ibuild-staging
+            sudo ln -sf /etc/nginx/sites-available/ibuild-staging /etc/nginx/sites-enabled/ibuild-staging
             cd /opt/ibuild/deploy
             if [ ! -f /opt/ibuild/server/.env ]; then
               echo "ERROR: /opt/ibuild/server/.env missing on the VDS."
@@ -205,7 +207,17 @@ jobs:
           username: ${{ secrets.AIRNET_USER }}
           key: ${{ secrets.AIRNET_SSH_KEY }}
           source: 'b2c-web.tgz,b2b-web.tgz'
-          target: '/tmp'
+          strip_components: 2
+
+      - name: Upload landing site
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AIRNET_HOST }}
+          username: ${{ secrets.AIRNET_USER }}
+          key: ${{ secrets.AIRNET_SSH_KEY }}
+          source: 'www/*'
+          target: '/tmp/ibuild-www-src/'
+          strip_components: 1
 
       - name: Install static files
         uses: appleboy/ssh-action@v1.2.0
@@ -216,11 +228,17 @@ jobs:
           script: |
             set -euo pipefail
             rm -rf /tmp/b2c-web /tmp/b2b-web
-            mkdir -p /tmp/b2c-web /tmp/b2b-web
+            mkdir -p /tmp/b2c-web /tmp/b2b-web /var/www/ibuild/www
             tar xzf /tmp/b2c-web.tgz -C /tmp/b2c-web
             tar xzf /tmp/b2b-web.tgz -C /tmp/b2b-web
             sudo rsync -a --delete /tmp/b2c-web/web/ /var/www/ibuild/app/
             sudo rsync -a --delete /tmp/b2b-web/web/ /var/www/ibuild/admin/
+            sudo rsync -a --delete /tmp/ibuild-www-src/ /var/www/ibuild/www/
             sudo rm -f /var/www/ibuild/admin/flutter_service_worker.js
             sudo chown -R www-data:www-data /var/www/ibuild
+            sudo cp -f /opt/ibuild/deploy/nginx-staging-ip.conf /etc/nginx/sites-available/ibuild-staging
+            sudo ln -sf /etc/nginx/sites-available/ibuild-staging /etc/nginx/sites-enabled/ibuild-staging
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo nginx -t
+            sudo systemctl reload nginx
             rm -rf /tmp/b2c-web /tmp/b2b-web /tmp/b2c-web.tgz /tmp/b2b-web.tgz

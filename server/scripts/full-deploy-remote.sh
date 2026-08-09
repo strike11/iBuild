@@ -59,6 +59,9 @@ install_web() {
     sh -c 'rm -rf /dest/* && cp -a /src/. /dest/ && chown -R 33:33 /dest'
 }
 
+echo "==> Install landing site"
+install_web /tmp/ibuild-www-src /var/www/ibuild/www
+
 echo "==> Install B2C web"
 install_web /tmp/ibuild-app-src /var/www/ibuild/app
 
@@ -80,6 +83,7 @@ curl -fsSI "http://${HOST}:4000/v1/static/residences/nestone.png" | head -1
 curl -fsSI "http://${HOST}:4000/v1/static/residences/hillsblue.png" | head -1
 curl -fsSI "http://${HOST}/v1/static/residences/hillsblue.png" | head -1 || true
 curl -fsSI "http://${HOST}/" | head -1 || true
+curl -fsSI "http://${HOST}:8081/" | head -1 || true
 curl -fsSI "http://${HOST}:8080/" | head -1 || true
 
 echo "Deploy complete (${LOCAL_TAG})."

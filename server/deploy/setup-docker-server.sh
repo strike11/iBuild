@@ -99,7 +99,8 @@ mkdir -p \
   /opt/ibuild/server/uploads/private \
   /opt/ibuild/source \
   /var/www/ibuild/app \
-  /var/www/ibuild/admin
+  /var/www/ibuild/admin \
+  /var/www/ibuild/www
 
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/ibuild/deploy /opt/ibuild/source
 mkdir -p /opt/ibuild/server
@@ -186,7 +187,8 @@ echo "=============================================="
 echo " Deploy user:     ${DEPLOY_USER}  (in group docker)"
 echo " API (local):     curl http://127.0.0.1:4000/v1/health  (after first deploy)"
 echo " API (public):    http://${SERVER_IP}/v1/health"
-echo " B2C app:         http://${SERVER_IP}/"
+echo " Landing:         http://${SERVER_IP}/"
+echo " B2C app:         http://${SERVER_IP}:8081/"
 echo " B2B admin:       http://${SERVER_IP}:8080/"
 echo " Secrets file:    ${STAGING_ENV}"
 echo ""
