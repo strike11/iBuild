@@ -8,6 +8,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string] $ServerIp,
 
+  [switch] $UseIpStaging,
   [switch] $Upload,
   [string] $SshHost = ""
 )
@@ -15,9 +16,15 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
-$apiBase = "http://${ServerIp}/v1"
-$wsUrl = "ws://${ServerIp}/v1/ws"
-$adminUrl = "http://${ServerIp}:8080"
+if ($UseIpStaging) {
+  $apiBase = "http://${ServerIp}/v1"
+  $wsUrl = "ws://${ServerIp}/v1/ws"
+  $adminUrl = "http://${ServerIp}:8080"
+} else {
+  $apiBase = "https://api.ibuild.uz/v1"
+  $wsUrl = "wss://api.ibuild.uz/v1/ws"
+  $adminUrl = "https://admin.ibuild.uz"
+}
 
 Write-Host "API:    $apiBase"
 Write-Host "WS:     $wsUrl"

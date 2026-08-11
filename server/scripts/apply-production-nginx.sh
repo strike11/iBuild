@@ -31,7 +31,4 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 echo "Production nginx sites enabled. Issue TLS certs if needed:"
-echo "  sudo certbot --nginx -d ibuild.uz -d www.ibuild.uz"
-echo "  sudo certbot --nginx -d app.ibuild.uz"
-echo "  sudo certbot --nginx -d api.ibuild.uz"
-echo "  sudo certbot --nginx -d admin.ibuild.uz"
+echo "  bash /opt/ibuild/deploy/setup-letsencrypt.sh"

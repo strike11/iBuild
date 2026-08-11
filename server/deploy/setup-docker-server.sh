@@ -110,7 +110,7 @@ chmod 700 /opt/ibuild/server/uploads/private
 chown -R www-data:www-data /var/www/ibuild
 
 echo "==> Staging application env: /opt/ibuild/server/.env"
-ORIGINS="http://${SERVER_IP},http://${SERVER_IP}:8080"
+ORIGINS="http://${SERVER_IP},http://${SERVER_IP}:8080,http://${SERVER_IP}:8081"
 STAGING_ENV="/opt/ibuild/server/.env"
 if [ ! -f "$STAGING_ENV" ]; then
   cat > "$STAGING_ENV" <<ENV

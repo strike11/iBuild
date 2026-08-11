@@ -10,6 +10,7 @@ param(
 
   [string] $SshUser = "ubuntu",
   [string] $SshKey = "",
+  [switch] $UseIpStaging,
   [switch] $SkipBuild
 )
 
@@ -41,7 +42,9 @@ Write-Host "==> Target: $SshHost"
 Write-Host "==> API:    http://${ServerIp}/v1"
 
 if (-not $SkipBuild) {
-  & (Join-Path $RepoRoot "scripts/staging-build-frontends.ps1") -ServerIp $ServerIp
+  $buildArgs = @("-ServerIp", $ServerIp)
+  if ($UseIpStaging) { $buildArgs += "-UseIpStaging" }
+  & (Join-Path $RepoRoot "scripts/staging-build-frontends.ps1") @buildArgs
 }
 
 Write-Host "==> Pack project sources (~40 MB, no .tools/build junk)..."
@@ -65,6 +68,8 @@ try {
 
 Write-Host "==> Upload codebase + web builds..."
 Invoke-Scp @($TarPath, "${SshHost}:/tmp/ibuild-src.tgz")
+Invoke-Ssh "rm -rf /tmp/ibuild-www-src && mkdir -p /tmp/ibuild-www-src"
+Invoke-Scp @("-r", (Join-Path $RepoRoot "www/."), "${SshHost}:/tmp/ibuild-www-src/")
 Invoke-Scp @("-r", (Join-Path $RepoRoot "b2c/build/web"), "${SshHost}:/tmp/ibuild-app-src")
 Invoke-Scp @("-r", (Join-Path $RepoRoot "b2b/build/web"), "${SshHost}:/tmp/ibuild-admin-src")
 
@@ -93,6 +98,14 @@ cp -f /opt/ibuild/source/ibuild/server/scripts/relaunch-api.sh /opt/ibuild/deplo
 chmod +x /opt/ibuild/deploy/*.sh
 sed -i 's/\r$//' /opt/ibuild/deploy/*.sh 2>/dev/null || true
 
+echo "==> Update CORS for production domains"
+PROD_ORIGINS="https://app.ibuild.uz,https://admin.ibuild.uz,https://www.ibuild.uz,https://ibuild.uz,http://${ServerIp:-46.8.176.254},http://${ServerIp:-46.8.176.254}:8080,http://${ServerIp:-46.8.176.254}:8081"
+if grep -q '^ALLOWED_ORIGINS=' /opt/ibuild/server/.env; then
+  sed -i "s|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=${PROD_ORIGINS}|" /opt/ibuild/server/.env
+else
+  echo "ALLOWED_ORIGINS=${PROD_ORIGINS}" >> /opt/ibuild/server/.env
+fi
+
 echo "==> Sync residence images"
 mkdir -p /opt/ibuild/server/residences-images
 cp -a /opt/ibuild/source/ibuild/server/residences-images/. /opt/ibuild/server/residences-images/ 2>/dev/null || true
@@ -119,8 +132,9 @@ Remove-Item -Force $TarPath -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "Deploy complete:"
-Write-Host "  B2C  http://${ServerIp}/"
-Write-Host "  B2B  http://${ServerIp}:8080/"
-Write-Host "  API  http://${ServerIp}/v1/health"
+Write-Host "  Landing  https://www.ibuild.uz/"
+Write-Host "  B2C      https://app.ibuild.uz/"
+Write-Host "  B2B      https://admin.ibuild.uz/"
+Write-Host "  API      https://api.ibuild.uz/v1/health"
 Write-Host "  Code /opt/ibuild/source/ibuild on server"
 Write-Host "  Relaunch: ~/ibuild-relaunch.sh"
