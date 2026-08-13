@@ -23,11 +23,7 @@ Map<String, dynamic> _media({
 };
 
 class _LayoutSpec {
-  const _LayoutSpec({
-    this.rooms,
-    required this.area,
-    required this.label,
-  });
+  const _LayoutSpec({this.rooms, required this.area, required this.label});
 
   final int? rooms;
   final double area;
@@ -202,8 +198,9 @@ Map<String, dynamic> _summarizeProject(Map<String, dynamic> project) {
   project['priceMax'] = maxOf(saleUnits, 'price');
   project['rentMin'] = minOf(rentUnits, 'rentMonthly');
   project['rentMax'] = maxOf(rentUnits, 'rentMonthly');
-  project['availableUnits'] =
-      allUnits.where((u) => u['status'] == 'available').length;
+  project['availableUnits'] = allUnits
+      .where((u) => u['status'] == 'available')
+      .length;
   project['totalUnits'] = allUnits.length;
   return project;
 }
