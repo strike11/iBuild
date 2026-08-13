@@ -161,19 +161,19 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build defines for staging IP
-        env:
-          HOST: ${{ secrets.AIRNET_HOST }}
+      - name: Build defines for production domains
         run: |
-          if [ -z "$HOST" ]; then
-            echo "AIRNET_HOST is empty — cannot bake API URLs into web builds." >&2
-            exit 1
-          fi
+          # api/app/admin.ibuild.uz are live behind TLS. Baking the raw IP
+          # (http://<ip>/v1) here used to overwrite the same web roots these
+          # domains serve from — every push replaced the working build with
+          # one that called plain HTTP from an HTTPS page, which browsers
+          # block as mixed content. That is why OTP/login kept silently
+          # failing after unrelated deploys. Always target the real domains.
           cat > b2b/dart_defines.staging.json <<JSON
-          {"API_BASE_URL":"http://${HOST}/v1","WS_URL":"ws://${HOST}/v1/ws"}
+          {"API_BASE_URL":"https://api.ibuild.uz/v1","WS_URL":"wss://api.ibuild.uz/v1/ws"}
           JSON
           cat > b2c/dart_defines.staging.json <<JSON
-          {"USE_MOCK_DATA":"false","API_BASE_URL":"http://${HOST}/v1","WS_URL":"ws://${HOST}/v1/ws","BUSINESS_URL":"http://${HOST}:8080"}
+          {"USE_MOCK_DATA":"false","API_BASE_URL":"https://api.ibuild.uz/v1","WS_URL":"wss://api.ibuild.uz/v1/ws","BUSINESS_URL":"https://admin.ibuild.uz"}
           JSON
 
       - name: Build B2B admin
@@ -239,11 +239,12 @@ jobs:
             install_web /tmp/ibuild-www-src /var/www/ibuild/www
             docker run --rm -v /var/www/ibuild/admin:/dest alpine:3.20 rm -f /dest/flutter_service_worker.js 2>/dev/null || true
 
-            docker run --rm \
-              -v /opt/ibuild/deploy/nginx-staging-ip.conf:/src/staging.conf:ro \
-              -v /etc/nginx/sites-available:/avail \
-              -v /etc/nginx/sites-enabled:/enabled \
-              alpine:3.20 sh -c 'cp /src/staging.conf /avail/ibuild-staging && ln -sf /etc/nginx/sites-available/ibuild-staging /enabled/ibuild-staging && rm -f /enabled/default'
+            # Production already has TLS-terminated vhosts for
+            # api/app/admin/www.ibuild.uz (see server/deploy/nginx-*.ibuild.uz.conf,
+            # applied once via apply-production-nginx.sh). Do not install or
+            # enable the IP-based staging vhost (nginx-staging-ip.conf) here —
+            # it is for a bare-IP bring-up before DNS/TLS exist, not for
+            # every deploy on top of a live production domain setup.
 
             docker run --rm --privileged --pid=host -v /run:/run --user 0:0 alpine:3.20 \
               sh -c 'kill -HUP "$(cat /run/nginx.pid)"'
