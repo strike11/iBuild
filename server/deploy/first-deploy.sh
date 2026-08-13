@@ -63,7 +63,11 @@ case "$cmd" in
       echo "  git clone https://github.com/strike11/iBuild.git /opt/ibuild/source" >&2
       exit 1
     fi
-    docker build -t "$LOCAL_TAG" "$SOURCE_DIR"
+    # --network host: BuildKit RUN steps otherwise inherit the host's
+    # /etc/resolv.conf verbatim (127.0.0.53 with systemd-resolved), which is
+    # unreachable from the build sandbox's own netns and hangs `dart pub get`
+    # forever instead of failing fast. Host networking sidesteps that.
+    docker build --network host -t "$LOCAL_TAG" "$SOURCE_DIR"
     write_image_env "$LOCAL_TAG"
     docker compose up -d --remove-orphans
     wait_healthy

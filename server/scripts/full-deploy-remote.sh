@@ -20,7 +20,11 @@ if [ ! -f "${SOURCE_DIR}/Dockerfile" ]; then
   echo "ERROR: ${SOURCE_DIR}/Dockerfile missing" >&2
   exit 1
 fi
-docker build -t "${LOCAL_TAG}" "${SOURCE_DIR}"
+# --network host: BuildKit RUN steps otherwise inherit the host's
+# /etc/resolv.conf verbatim (127.0.0.53 with systemd-resolved), which is
+# unreachable from the build sandbox's own netns and hangs `dart pub get`
+# forever instead of failing fast. Host networking sidesteps that.
+docker build --network host -t "${LOCAL_TAG}" "${SOURCE_DIR}"
 echo "IBUILD_IMAGE=${LOCAL_TAG}" > "${DEPLOY_DIR}/.env"
 
 echo "==> Restart API"
