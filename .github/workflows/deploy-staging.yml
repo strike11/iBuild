@@ -89,7 +89,7 @@ jobs:
           host: ${{ secrets.AIRNET_HOST }}
           username: ${{ secrets.AIRNET_USER }}
           key: ${{ secrets.AIRNET_SSH_KEY }}
-          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh,server/deploy/sync-residences-images.sh,server/deploy/nginx-staging-ip.conf,server/deploy/nginx-ibuild.uz.conf,server/deploy/nginx-app.ibuild.uz.conf,server/deploy/nginx-api.ibuild.uz.conf,server/deploy/nginx-admin.ibuild.uz.conf,server/scripts/apply-production-nginx.sh'
+          source: 'server/deploy/docker-compose.yml,server/deploy/first-deploy.sh,server/deploy/healthcheck-docker.sh,server/deploy/sync-residences-images.sh,server/deploy/nginx-staging-ip.conf,server/deploy/nginx-ibuild.uz.conf,server/deploy/nginx-app.ibuild.uz.conf,server/deploy/nginx-api.ibuild.uz.conf,server/deploy/nginx-admin.ibuild.uz.conf,server/deploy/flutter-service-worker-killswitch.js,server/scripts/apply-production-nginx.sh'
           target: '/opt/ibuild/deploy/'
           strip_components: 2
 
@@ -237,7 +237,19 @@ jobs:
             install_web /tmp/b2c-web/web /var/www/ibuild/app
             install_web /tmp/b2b-web/web /var/www/ibuild/admin
             install_web /tmp/ibuild-www-src /var/www/ibuild/www
-            docker run --rm -v /var/www/ibuild/admin:/dest alpine:3.20 rm -f /dest/flutter_service_worker.js 2>/dev/null || true
+
+            # Retire Flutter's own service worker on every deploy, not just
+            # once: `flutter build web` still emits flutter_service_worker.js
+            # even with --pwa-strategy=none, and any phone that registered
+            # the real one on an older visit needs an actual replacement
+            # script to unregister — a 404 here does not do that, see
+            # server/deploy/flutter-service-worker-killswitch.js.
+            for dest in /var/www/ibuild/app /var/www/ibuild/admin; do
+              docker run --rm \
+                -v /opt/ibuild/deploy/flutter-service-worker-killswitch.js:/src/sw.js:ro \
+                -v "${dest}:/dest" alpine:3.20 \
+                sh -c 'cp /src/sw.js /dest/flutter_service_worker.js && chown 33:33 /dest/flutter_service_worker.js && chmod 644 /dest/flutter_service_worker.js'
+            done
 
             # Production already has TLS-terminated vhosts for
             # api/app/admin/www.ibuild.uz (see server/deploy/nginx-*.ibuild.uz.conf,
