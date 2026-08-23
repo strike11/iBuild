@@ -75,15 +75,18 @@ link_site "ibuild-bootstrap"
 nginx_exec -t
 nginx_reload
 
-landing_domains=( -d www.ibuild.uz )
-if domain_points_here "ibuild.uz"; then
-  landing_domains=( -d ibuild.uz -d www.ibuild.uz )
-  echo "==> ibuild.uz apex resolves — including in landing certificate"
-else
-  echo "WARN: ibuild.uz has no A record yet — cert will cover www.ibuild.uz only" >&2
+# Apex must be in the cert: nginx serves both names on one vhost. Issuing
+# www-only leaves https://ibuild.uz with a hostname mismatch (Safari "Not Private").
+if ! domain_points_here "ibuild.uz"; then
+  echo "ERROR: ibuild.uz must resolve to ${SERVER_IP} before issuing the landing cert" >&2
+  exit 1
 fi
-
-echo "==> Issue certificate: landing"
+if ! domain_points_here "www.ibuild.uz"; then
+  echo "ERROR: www.ibuild.uz must resolve to ${SERVER_IP} before issuing the landing cert" >&2
+  exit 1
+fi
+landing_domains=( -d ibuild.uz -d www.ibuild.uz )
+echo "==> Issue certificate: landing (ibuild.uz + www.ibuild.uz)"
 certbot_webroot /var/www/ibuild/www --cert-name ibuild.uz "${landing_domains[@]}"
 
 echo "==> Issue certificate: app.ibuild.uz"
@@ -135,6 +138,7 @@ docker run --rm -v /opt/ibuild/deploy:/dest -v /tmp:/tmp alpine:3.20 \
 
 echo "==> Verify HTTPS endpoints"
 for url in \
+  "https://ibuild.uz/" \
   "https://www.ibuild.uz/" \
   "https://app.ibuild.uz/" \
   "https://admin.ibuild.uz/" \

@@ -85,6 +85,7 @@ nginx_reload
 
 echo "==> Verify HTTPS"
 for url in \
+  "https://ibuild.uz/" \
   "https://www.ibuild.uz/" \
   "https://app.ibuild.uz/" \
   "https://admin.ibuild.uz/" \
