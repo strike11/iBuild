@@ -5,6 +5,10 @@ library;
 String staticResidencePhoto(String filename) =>
     '/v1/static/residences/$filename';
 
+/// Construction-check pair for the residence demo cycle (not catalogue renders).
+const kSitePhotoDemoAFile = 'first-check-photo.jpg';
+const kSitePhotoDemoBFile = 'second-check-photo.jpg';
+
 String _placeholderImage(String seed, int w, int h) =>
     'https://picsum.photos/seed/$seed/$w/$h';
 
@@ -248,16 +252,17 @@ Map<String, dynamic> _buildNestOne() {
     'id': 'prj-nestone',
     'name': 'NestOne',
     'type': 'residential_complex',
-    'status': 'ready',
+    'status': 'under_construction',
     'district': 'Shayxontohur',
-    'address': 'Amir Temur shoh ko\'chasi, Shayxontohur, Tashkent',
+    'address': 'Botyr Zakirov ko\'chasi 1B, Shayxontohur, Tashkent',
     'lat': 41.31215655652716,
     'lng': 69.25275117116448,
     'developer': developer,
     'description':
-        'NestOne is a completed mixed-use complex in Shayxontohur: sale and rent '
-        'apartments in a 10-storey living tower plus Class-A offices with live '
-        'availability on an interactive floor grid. Underground parking, gym, and concierge.',
+        'NestOne is a mixed-use complex in Shayxontohur in the final stretch of '
+        'construction: sale and rent apartments in a 10-storey living tower plus '
+        'Class-A offices with live availability on an interactive floor grid. '
+        'Underground parking, gym, and concierge.',
     'amenities': const [
       'Underground parking',
       'Gym',
@@ -269,15 +274,16 @@ Map<String, dynamic> _buildNestOne() {
     ],
     'tags': const [
       'Premium',
-      'Ready to move',
+      'New build',
       'Apartments',
       'Offices',
       'Rent',
       'Installments',
     ],
-    'constructionProgress': 100,
-    'plannedProgress': 100,
-    'completionDate': '2024-12-01T00:00:00.000Z',
+    // Near handover: small schedule gap → green trust / on schedule.
+    'constructionProgress': 94,
+    'plannedProgress': 96,
+    'completionDate': '2026-10-01T00:00:00.000Z',
     'rating': 4.8,
     'isFeatured': true,
     'isPublished': true,
@@ -311,8 +317,8 @@ Map<String, dynamic> _buildNestOne() {
         'projectId': 'prj-nestone',
         'name': 'Living Tower',
         'floors': 10,
-        'constructionProgress': 100,
-        'completionDate': '2024-12-01T00:00:00.000Z',
+        'constructionProgress': 95,
+        'completionDate': '2026-10-01T00:00:00.000Z',
         'units': livingUnits,
       },
       {
@@ -320,8 +326,8 @@ Map<String, dynamic> _buildNestOne() {
         'projectId': 'prj-nestone',
         'name': 'Office Wing',
         'floors': 8,
-        'constructionProgress': 100,
-        'completionDate': '2024-12-01T00:00:00.000Z',
+        'constructionProgress': 93,
+        'completionDate': '2026-10-01T00:00:00.000Z',
         'units': officeUnits,
       },
     ],
