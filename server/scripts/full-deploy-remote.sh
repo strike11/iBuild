@@ -71,8 +71,17 @@ install_web /tmp/ibuild-app-src /var/www/ibuild/app
 
 echo "==> Install B2B web"
 install_web /tmp/ibuild-admin-src /var/www/ibuild/admin
-docker run --rm -v /var/www/ibuild/admin:/dest alpine:3.20 \
-  rm -f /dest/flutter_service_worker.js 2>/dev/null || true
+for dest in /var/www/ibuild/app /var/www/ibuild/admin; do
+  if [ -f "${DEPLOY_DIR}/flutter-service-worker-killswitch.js" ]; then
+    docker run --rm \
+      -v "${DEPLOY_DIR}/flutter-service-worker-killswitch.js:/src/sw.js:ro" \
+      -v "${dest}:/dest" alpine:3.20 \
+      sh -c 'cp /src/sw.js /dest/flutter_service_worker.js && chown 33:33 /dest/flutter_service_worker.js && chmod 644 /dest/flutter_service_worker.js'
+  else
+    docker run --rm -v "${dest}:/dest" alpine:3.20 \
+      rm -f /dest/flutter_service_worker.js 2>/dev/null || true
+  fi
+done
 
 # B2C deploy wipes /var/www/ibuild/app — re-mirror catalogue photos for nginx.
 echo "==> Re-mirror residence photos under B2C web root"

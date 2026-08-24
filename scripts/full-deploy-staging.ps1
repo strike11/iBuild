@@ -70,6 +70,7 @@ Write-Host "==> Upload codebase + web builds..."
 Invoke-Scp @($TarPath, "${SshHost}:/tmp/ibuild-src.tgz")
 Invoke-Ssh "rm -rf /tmp/ibuild-www-src && mkdir -p /tmp/ibuild-www-src"
 Invoke-Scp @("-r", (Join-Path $RepoRoot "www/."), "${SshHost}:/tmp/ibuild-www-src/")
+Invoke-Ssh "rm -rf /tmp/ibuild-app-src /tmp/ibuild-admin-src"
 Invoke-Scp @("-r", (Join-Path $RepoRoot "b2c/build/web"), "${SshHost}:/tmp/ibuild-app-src")
 Invoke-Scp @("-r", (Join-Path $RepoRoot "b2b/build/web"), "${SshHost}:/tmp/ibuild-admin-src")
 
@@ -93,6 +94,7 @@ cp -f /opt/ibuild/source/ibuild/server/deploy/docker-compose.yml /opt/ibuild/dep
 cp -f /opt/ibuild/source/ibuild/server/deploy/first-deploy.sh /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/deploy/healthcheck-docker.sh /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/deploy/sync-residences-images.sh /opt/ibuild/deploy/
+cp -f /opt/ibuild/source/ibuild/server/deploy/flutter-service-worker-killswitch.js /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/scripts/full-deploy-remote.sh /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/scripts/relaunch-api.sh /opt/ibuild/deploy/
 chmod +x /opt/ibuild/deploy/*.sh
