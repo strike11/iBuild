@@ -9,6 +9,16 @@ String staticResidencePhoto(String filename) =>
 const kSitePhotoDemoAFile = 'first-check-photo.jpg';
 const kSitePhotoDemoBFile = 'second-check-photo.jpg';
 
+/// Bundled stills the demo cycle may attach without a multipart upload.
+const kSitePhotoDemoSampleFiles = {
+  kSitePhotoDemoAFile,
+  kSitePhotoDemoBFile,
+  'before-site-photo.jpg',
+  'after-site-photo.jpg',
+  'nestone.png',
+  'hillsblue.png',
+};
+
 String _placeholderImage(String seed, int w, int h) =>
     'https://picsum.photos/seed/$seed/$w/$h';
 
