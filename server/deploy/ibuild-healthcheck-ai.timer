@@ -1,0 +1,11 @@
+[Unit]
+Description=Run iBuild AI wiring check every 15 minutes
+
+[Timer]
+# Give the API time to boot and demo-login to become available.
+OnBootSec=10min
+OnUnitActiveSec=15min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

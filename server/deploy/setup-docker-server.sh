@@ -180,6 +180,22 @@ cp -f "${SCRIPT_DIR}/ibuild-healthcheck-docker.timer" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now ibuild-healthcheck-docker.timer
 
+echo "==> AI wiring watchdog (OpenAI key + construction-verify prompt)"
+# /v1/health cannot see this failure mode: a missing OPENAI_API_KEY or an
+# unmounted construction-verify prompt still answers 200 forever while the
+# A→B pipeline silently never calls OpenAI (see server/deploy/healthcheck-ai.sh
+# for the incident this replaces). This only warns/alerts — never restarts.
+cp -f "${SCRIPT_DIR}/healthcheck-ai.sh" /opt/ibuild/deploy/healthcheck-ai.sh
+chmod +x /opt/ibuild/deploy/healthcheck-ai.sh
+chown "${DEPLOY_USER}:${DEPLOY_USER}" /opt/ibuild/deploy/healthcheck-ai.sh
+mkdir -p /opt/ibuild/server/prompts
+chown "${DEPLOY_USER}:${DEPLOY_USER}" /opt/ibuild/server/prompts
+chmod 755 /opt/ibuild/server/prompts
+cp -f "${SCRIPT_DIR}/ibuild-healthcheck-ai.service" /etc/systemd/system/
+cp -f "${SCRIPT_DIR}/ibuild-healthcheck-ai.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now ibuild-healthcheck-ai.timer
+
 echo ""
 echo "=============================================="
 echo " Bootstrap complete."

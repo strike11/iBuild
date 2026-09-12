@@ -1,0 +1,8 @@
+[Unit]
+Description=iBuild AI wiring watchdog (OpenAI key + construction-verify prompt)
+After=ibuild-api.service docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+ExecStart=/opt/ibuild/deploy/healthcheck-ai.sh
