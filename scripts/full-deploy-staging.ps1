@@ -57,7 +57,8 @@ try {
   )
   $excludeArgs = @(
     "--exclude=build", "--exclude=.dart_tool", "--exclude=windows",
-    "--exclude=android", "--exclude=ios", "--exclude=.idea", "--exclude=node_modules"
+    "--exclude=android", "--exclude=ios", "--exclude=.idea", "--exclude=node_modules",
+    "--exclude=.env", "--exclude=*.local.txt"
   )
   & tar -czf $TarPath @excludeArgs @include
   if ($LASTEXITCODE -ne 0) { throw "tar pack failed" }
@@ -81,8 +82,8 @@ $remoteBody = @'
 set -eu
 
 echo "==> Extract codebase to /opt/ibuild/source/ibuild"
+rm -rf /opt/ibuild/source/ibuild
 mkdir -p /opt/ibuild/source/ibuild
-rm -rf /opt/ibuild/source/ibuild/*
 tar xzf /tmp/ibuild-src.tgz -C /opt/ibuild/source/ibuild
 
 echo "==> Sync server source for Docker build"
