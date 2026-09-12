@@ -94,6 +94,7 @@ mkdir -p /opt/ibuild/deploy
 cp -f /opt/ibuild/source/ibuild/server/deploy/docker-compose.yml /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/deploy/first-deploy.sh /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/deploy/healthcheck-docker.sh /opt/ibuild/deploy/
+cp -f /opt/ibuild/source/ibuild/server/deploy/healthcheck-ai.sh /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/deploy/sync-residences-images.sh /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/deploy/flutter-service-worker-killswitch.js /opt/ibuild/deploy/
 cp -f /opt/ibuild/source/ibuild/server/scripts/full-deploy-remote.sh /opt/ibuild/deploy/
