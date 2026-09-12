@@ -99,4 +99,15 @@ curl -fsSI "http://${HOST}/" | head -1 || true
 curl -fsSI "http://${HOST}:8081/" | head -1 || true
 curl -fsSI "http://${HOST}:8080/" | head -1 || true
 
+# Loud, on every deploy: a broken OpenAI key or an unmounted construction-
+# verify prompt never fails /v1/health, so it can (and did, 2026-09-12) go
+# unnoticed for weeks. This does not fail the deploy (a bad key on a
+# non-AI-only release should not block ship), but it is impossible to miss
+# in the deploy log.
+echo "==> AI wiring check (construction-verify OpenAI pipeline)"
+if [ -x "${DEPLOY_DIR}/healthcheck-ai.sh" ]; then
+  AI_STATUS_BASE_URL="http://${HOST}:4000/v1" bash "${DEPLOY_DIR}/healthcheck-ai.sh" || \
+    echo "!!! AI WIRING NOT READY — see message above. Construction-verify will silently fall back to needs_review without calling OpenAI. !!!" >&2
+fi
+
 echo "Deploy complete (${LOCAL_TAG})."
