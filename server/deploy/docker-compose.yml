@@ -49,6 +49,15 @@ services:
       # Bundled residence marketing photos — synced from git on each deploy so
       # new images survive container recreates without rebuilding the image.
       - /opt/ibuild/server/residences-images:/app/residences-images
+      # Real construction-verify system prompt. The image only ships the
+      # committed `PROMPT_NOT_SHIPPED` placeholder (lib/ is not copied into
+      # the runtime stage — see Dockerfile), so without this mount
+      # `prompt.isShipped` is permanently false and GPT-vision on the A→B
+      # site-photo cycle silently never runs, regardless of AI_VISION_ENABLED.
+      # Point CONSTRUCTION_VERIFY_PROMPT_FILE at the mounted path in
+      # /opt/ibuild/server/.env. Content lives only on the host (gitignored
+      # upstream too), same treatment as the OpenAI key.
+      - /opt/ibuild/server/prompts:/app/prompts:ro
 
     # Matches TimeoutStopSec in ibuild-api.service: the server traps SIGTERM
     # and drains in-flight requests before exiting.
